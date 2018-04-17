@@ -53,6 +53,24 @@ import org.pitest.mutationtest.engine.gregor.mutators.experimental.NakedReceiver
 import org.pitest.mutationtest.engine.gregor.mutators.experimental.RemoveIncrementsMutator;
 import org.pitest.mutationtest.engine.gregor.mutators.experimental.RemoveSwitchMutator;
 import org.pitest.mutationtest.engine.gregor.mutators.experimental.SwitchMutator;
+import org.pitest.mutationtest.engine.gregor.mutators.experimental.security.CookieHttpOnlyFlagDisableMutator;
+import org.pitest.mutationtest.engine.gregor.mutators.experimental.security.CookieSecureFlagDisableMutator;
+import org.pitest.mutationtest.engine.gregor.mutators.experimental.security.DisableDOCTYPEVerificationOnXMLParserWithSAXMutator;
+import org.pitest.mutationtest.engine.gregor.mutators.experimental.security.DisableDOCTYPEVerificationOnXMLParserWithXMLReaderMutator;
+import org.pitest.mutationtest.engine.gregor.mutators.experimental.security.DisableDOSVerificationOnXMLParserWithSAXMutator;
+import org.pitest.mutationtest.engine.gregor.mutators.experimental.security.DisableDOSVerificationOnXMLParserWithXMLReaderMutator;
+import org.pitest.mutationtest.engine.gregor.mutators.experimental.security.HostNameVerifyToTrueMutator;
+import org.pitest.mutationtest.engine.gregor.mutators.experimental.security.PatternMatchesAnythingMutator;
+import org.pitest.mutationtest.engine.gregor.mutators.experimental.security.RSAWithShortKeyMutator;
+import org.pitest.mutationtest.engine.gregor.mutators.experimental.security.RemoveSSLInSocketMutator;
+import org.pitest.mutationtest.engine.gregor.mutators.experimental.security.SQLInjectionOKWithJDBCMutator;
+import org.pitest.mutationtest.engine.gregor.mutators.experimental.security.StringMatcherMatchesAnythingMutator;
+import org.pitest.mutationtest.engine.gregor.mutators.experimental.security.TrustUserInputInFilesRetrievementMutator;
+import org.pitest.mutationtest.engine.gregor.mutators.experimental.security.UseBLOWFISHWithShortKeyMutator;
+import org.pitest.mutationtest.engine.gregor.mutators.experimental.security.UseECBInSymmetricEncryptionMutator;
+import org.pitest.mutationtest.engine.gregor.mutators.experimental.security.UseMD5ForEncryptionJAVAStandardMutator;
+import org.pitest.mutationtest.engine.gregor.mutators.experimental.security.UseMD5ForEncryptionWithBouncyCastleMutator;
+import org.pitest.mutationtest.engine.gregor.mutators.experimental.security.UseWeakPseudoRandomNumberGeneratorMutator;
 
 public final class Mutator {
 
@@ -171,11 +189,316 @@ public final class Mutator {
      */
     add("EXPERIMENTAL_NAKED_RECEIVER", NakedReceiverMutator.NAKED_RECEIVER);
 
+
+    /**
+     * 1 From : http://find-sec-bugs.github.io/bugs.htm#PREDICTABLE_RANDOM
+     * Mutator that replaces any call to SecureRandom.nextBytes to (new
+     * Random).nextBytes. The use of Random instead of SecureRandom leads to
+     * use a predictable pseudorandom number generator. This mutation
+     * operator can lead to weaknesses in secure communications or simply
+     * encryption, it facilitates the work of the attacker.
+     */
+    add("USE_PSEUDO_RANDOM_MUTATOR",
+        UseWeakPseudoRandomNumberGeneratorMutator.USE_WEAK_PSEUDO_RANDOM_NUMBER_GENERATOR_MUTATOR);
+
+    /**
+     * 2 From : http://find-sec-bugs.github.io/bugs.htm#PATH_TRAVERSAL_IN
+     * Mutator that removes any call to the user-input-sanitization method
+     * FilenameUtils.getName(name).
+     *
+     * Example: if name = "a/b/c.txt", getName will give "c.txt".
+     *
+     * The sanitization method prevents the attacker to access to the
+     * folders under the one you give him access to.
+     *
+     * This mutation operator can lead to path traversal vulnerabilities.
+     */
+    add("TRUST_USER_INPUT_IN_FILES_RETRIEVEMENT",
+        TrustUserInputInFilesRetrievementMutator.TRUST_USER_INPUT_IN_FILES_RETRIEVEMENT);
+
+    /**
+     * 3 From :
+     * http://find-sec-bugs.github.io/bugs.htm#WEAK_MESSAGE_DIGEST_MD5
+     * Mutator that changes X-Digest's where X can be SHA-256 or another
+     * algorithm of hashing to MD5Digest in a pattern of encryption given by
+     * http://find-sec-bugs.github.io/bugs.htm#WEAK_MESSAGE_DIGEST_MD5. This
+     * mutator can lead to weakness in hashing because of collision in MD5
+     * hashing function.
+     */
+    add("USE_MD5_FOR_ENCRYPTION_WITH_BOUNCY_CASTLE",
+        UseMD5ForEncryptionWithBouncyCastleMutator.USE_MD5_FOR_ENCRYPTION_WITH_BOUNCY_CASTLE);
+
+    /**
+     * 4 From :
+     * http://find-sec-bugs.github.io/bugs.htm#WEAK_MESSAGE_DIGEST_MD5
+     * Mutator that replaces any call to new Digest("X") constructor by new
+     * Digest("MD5"). This mutator can lead to weaknesses in hashing because
+     * of collision in MD5 hashing function.
+     */
+    add("USE_MD5_FOR_ENCRYPTION_JAVA_STANDARD_MUTATOR",
+        UseMD5ForEncryptionJAVAStandardMutator.USE_MD5_FOR_ENCRYPTION_JAVA_STANDARD_MUTATOR);
+
+    /**
+     * 5 From :
+     * http://find-sec-bugs.github.io/bugs.htm#WEAK_HOSTNAME_VERIFIER
+     * Mutator that replaces any call to (boolean)
+     * HostnameVerifier.verify(hostname,session) by "true".
+     *
+     * HostNameVerifier.verify is a standard way to
+     * "Verify that the host name is an acceptable match with the server's authentication scheme."
+     * ref: HostNameVerifier doc
+     *
+     * Usually, the HostNameVerifier.verify implementation (HostNameVerifier
+     * is an interface) verifies the Certificate of the host before
+     * returning true or false.
+     *
+     * This mutator can lead to vulnerabilities in the authentication
+     * process of the program since it accepts anyone.
+     */
+    add("HOST_NAME_VERIFY_TO_TRUE",
+        HostNameVerifyToTrueMutator.HOST_NAME_VERIFY_TO_TRUE);
+
+    /**
+     * 6 From : http://find-sec-bugs.github.io/bugs.htm#XXE_SAXPARSER
+     * Mutator that adds
+     * saxParserFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING,
+     * false); before any call of saxParserFactory.newSAXParser(); The
+     * SAXParser is an XMLParser object. The call to
+     * saxParserFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING,
+     * false) will disable the checking for DOS attacks before parsing. This
+     * mutator will make any SAXParser created by the saxParserFactory
+     * vulnerable to DOS attacks.
+     */
+    add("XML_PARSER_VULNERABLE_TO_DOS_WITH_SAX",
+        DisableDOSVerificationOnXMLParserWithSAXMutator.XML_PARSER_VULNERABLE_TO_DOS_WITH_SAX);
+
+    /**
+     * 7 From : http://find-sec-bugs.github.io/bugs.htm#XXE_XMLREADER.
+     * Mutator that adds
+     * xmlReader.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, false);
+     * before any call of xmlReader.parse(InputSource) The XMLReader is an
+     * XMLParser object. The call to
+     * xmlReader.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, false)
+     * will disable the checking for DOS attacks before parsing. This
+     * mutator will make the XMLReader vulnerable to DOS attacks.
+     */
+    add("XML_PARSER_VULNERABLE_TO_DOS_WITH_XMLREADER",
+        DisableDOSVerificationOnXMLParserWithXMLReaderMutator.XML_PARSER_VULNERABLE_TO_DOS_WITH_XMLREADER);
+
+    /**
+     * 8 From : http://find-sec-bugs.github.io/bugs.htm#XXE_SAXPARSER
+     * Mutator that adds saxParserFactory.setFeature(
+     * "http://apache.org/xml/features/disallow-doctype-decl", false);
+     * before any call of saxParserFactory.newSAXParser(); The SAXParser is
+     * an XMLParser object. This mutator will make any SAXParser created by
+     * saxParserFactory vulnerable to XXE attacks if it parses input from an
+     * external source.
+     */
+    add("XML_PARSER_VULNERABLE_TO_DOCTYPE_WITH_SAX",
+        DisableDOCTYPEVerificationOnXMLParserWithSAXMutator.XML_PARSER_VULNERABLE_TO_XXE_WITH_SAX);
+
+    /**
+     * 9 From : http://find-sec-bugs.github.io/bugs.htm#XXE_XMLREADER
+     * Mutator that adds XMLReader.setFeature(
+     * "http://apache.org/xml/features/disallow-doctype-decl", false);
+     * before any call of XMLReader.parse(InputSource); This mutator will
+     * make the XMLReader vulnerable to XXE attacks if it parses input from
+     * an external source.
+     */
+    add("XML_PARSER_VULNERABLE_TO_DOCTYPE_WITH_XMLREADER",
+        DisableDOCTYPEVerificationOnXMLParserWithXMLReaderMutator.XML_PARSER_VULNERABLE_TO_XXE_WITH_XMLREADER);
+
+    /**
+     * 10 From : http://find-sec-bugs.github.io/bugs.htm#UNENCRYPTED_SOCKET
+     * Mutator that replaces any (Socket)
+     * SSLSocketFactory.getDefault().createSocket("address", portNumber); to
+     * (Socket) SocketFactory.getDefault().createSocket("address", 80); This
+     * mutator will create a Socket that uses HTTP instead of HTTPS. It can
+     * lead to un-encrypted communications that can be read by an attacker
+     * intercepting the network traffic.
+     */
+    add("REMOVE_SECURE_SOCKET_MUTATOR",
+        RemoveSSLInSocketMutator.REMOVE_SECURE_SOCKET_MUTATOR);
+
+    /**
+     * 11 From : http://find-sec-bugs.github.io/bugs.htm#INSECURE_COOKIE
+     * Mutator that removes any call to cookie.setSecure(true)
+     * cookie.setSecure(true) adds a flag to the cookie sent by the server
+     * telling the browser to never send this cookie in insecure context.
+     * This mutation operator can enable attackers to read private
+     * information stocked in cookies if they intercept the communication.
+     */
+    add("REMOVE_SECURE_FLAG_MUTATOR",
+        CookieSecureFlagDisableMutator.REMOVE_SECURE_FLAG_MUTATOR);
+
+    /**
+     * 12 From : http://find-sec-bugs.github.io/bugs.htm#HTTPONLY_COOKIE
+     * Mutator that removes any cookie.setHttpOnly(true);
+     * cookie.setHttpOnly(true) adds a flag to the cookie sent by the server
+     * telling the browser to make sure that the cookie can not be red by
+     * malicious script. This mutation operator can lead to weaknesses like
+     * session hijacking using cross-site scripting.
+     */
+    add("REMOVE_HTTPONLY_FLAG_MUTATOR",
+        CookieHttpOnlyFlagDisableMutator.REMOVE_HTTPONLY_FLAG_MUTATOR);
+
+    /**
+     * 13 From : http://find-sec-bugs.github.io/bugs.htm#RSA_KEY_SIZE
+     * Mutator that makes the program use a small key for RSA encryption
+     * (512bits) where it used a secured-size key (>=2048bits).
+     *
+     * It replaces any call to keyPairGenerator.initialize(X); where X>=2048
+     * by keyPairGenerator.initialize(512)
+     *
+     * The only way to know that the KeyPairGenerator is for RSA-use is to
+     * have the creation of the KeyPairGenerator in the same method as the
+     * initialization. So,the mutation operator is applied only if we can
+     * find keyPairGenerator = KeyPairGenerator.getInstance("RSA") in the
+     * same method as the initialization.
+     *
+     * This mutation operator can lead to weaknesses in secure
+     * communications using RSA, it facilitates the brute force attack for
+     * instance.
+     */
+    add("RSA_WITH_SHORT_KEY_MUTATOR",
+        RSAWithShortKeyMutator.RSA_WITH_SHORT_KEY_MUTATOR);
+
+    /**
+     * 14 From : http://find-sec-bugs.github.io/bugs.htm#BLOWFISH_KEY_SIZE
+     * Mutator that makes the program use a small key for BLOWFISH
+     * encryption (64bits) where it used a secured-size key (>=2048bits).
+     *
+     * It replaces any KeyGenerator.init(X); where X>=128 to
+     * KeyGenerator.init(64)
+     *
+     * The only way to know that the KeyGenerator is for BLOWFISH-use is to
+     * have the creation of the KeyGenerator in the same method as the
+     * initialization. So,the mutation operator is applied only if we can
+     * find keyGenerator = KeyGenerator.getInstance("BLOWFISH") in the same
+     * method as the initialization.
+     *
+     * This mutation operator can lead to weaknesses in secure encryption
+     * using BLOWFISH, it facilitates a brute force attack for instance.
+     */
+    add("USE_BLOWFISH_WITH_SHORT_KEY",
+        UseBLOWFISHWithShortKeyMutator.USE_BLOWFISH_WITH_SHORT_KEY);
+
+    /**
+     * 15 From : http://find-sec-bugs.github.io/bugs.htm#SQL_INJECTION_JDBC
+     * Mutator that replaces the initialization and the execution of a
+     * PreparedStatement by the initialization and execution of a Statement,
+     * enabling SQL injection.
+     *
+     * For the mutator to be applied, the following pattern must be found in
+     * one method:
+     *
+     * PreparedStatement preparedStatement =
+     * connection.prepareStatement("querryContainingOneOrSeveral'?'");
+     * preparedStatement.setX0(1, value); preparedStatement.setXn(1, value);
+     * where Xi are in {Float, Double, Boolean, Long, String, Int}
+     * preparedStatement.execute() or executeQuerry() or executeUpdate();
+     *
+     * The mutator will only change the last line of the pattern to
+     * connection.createStatement().execute(
+     * "querry where '?' are replaced by the values set before")
+     *
+     * Example: PreparedStatement updateSales = conn.prepareStatement(
+     * "update COFFEES set SALES = ? where COF_NAME = ?");
+     * updateSales.setInt(1, nbSales) updateSales.setString(2, coffeeName);
+     * updateSales.execute();
+     *
+     * will be mutated to
+     *
+     * PreparedStatement updateSales = conn.prepareStatement(
+     * "update COFFEES set SALES = ? where COF_NAME = ?");
+     * updateSales.setInt(1, nbSales); updateSales.setString(2, coffeeName);
+     * conn.createStatement().execute("update COFFEES set SALES = '"
+     * +nbSales+"' where COF_NAME = '"+coffeeName+"'");
+     *
+     * This mutation operator can lead to SQL injection because the
+     * preparedStatement.setX methods sanitize the inputs. For instance, if
+     * the coffeeName can be controlled by an attacker, he must just insert
+     * coffeeName = "randomName' or 'a'='a";
+     */
+    add("SQL_INJECTION_OK_WITH_JDBC",
+        SQLInjectionOKWithJDBCMutator.SQL_INJECTION_OK_WITH_JDBC);
+
+    /**
+     * 16 From : http://find-sec-bugs.github.io/bugs.htm#DES_USAGE Mutator
+     * that replaces the creation and initialization of a secure symmetric
+     * Cipher (not DES) to the creation and initialization of a DES cipher.
+     * For the mutator to be applied, the following pattern must be found in
+     * one method:
+     *
+     * Cipher c = Cipher.getInstance("SECUREALGORITHM/MODE/PADDING");
+     * c.init(Cipher.ENCRYPT_MODE or Cipher.DECRYPT_MODE, key);
+     *
+     * The mutator will change both lines with:
+     *
+     * Cipher c = Cipher.getInstance("DES/ECB/PKCS5Padding");
+     * c.init(Cipher.ENCRYPT_MODE,new
+     * SecretKeySpec(key.getEncoded(),0,8,"DES"));
+     *
+     * Because DES is known to be insecure, this mutation operator can lead
+     * to weaknesses in symmetric encryption.
+     */
+    // add(USE_DES_FOR_SYMMETRIC_ENCRYPTION",NEWUseDESForSymmetricEncryptionMutator.USE_DES_FOR_SYMMETRIC_ENCRYPTION);
+
+    /**
+     * 17 From : http://find-sec-bugs.github.io/bugs.htm#ECB_MODE Mutator
+     * that replaces any Cipher.getInstance("X/Y/Z"); where Y != ECB by
+     * Cipher.getInstance("X/ECB/Z"); If Y and Z are null, replaces it by
+     * Cipher.getInstance("X/ECB/PKCS5Padding)
+     *
+     * The ECB mode means that if two plaintext blocks are identical, the
+     * cipherText blocks obtained will also be identical.
+     *
+     * This mutation operator can lead to weaknesses in encryption, it
+     * facilitates the decryption of a cipherText by an attacker.
+     */
+    add("USE_ECB_IN_SYMMETRIC_ENCRYPTION",
+        UseECBInSymmetricEncryptionMutator.USE_ECB_IN_SYMMETRIC_ENCRYPTION);
+
+    // 18 XXXX DOESNT WORK XXXX
+    // add("MUTATE_TRUSTMANAGER_TO_USELESS",NEWUselessX509TrustManagerMutator.MUTATE_TRUSTMANAGER_TO_USELESS);
+
+    /**
+     * 19 From : http://askMike.hisIdea.gr Mutator that replaces any
+     * Pattern.compile(goodRegex); by Pattern.compile("([^¤]*)"); The regex
+     * ([^¤]*) says: accept a String containing anything but ¤, it can be as
+     * long as you want. If ¤ is never used in inputs, the mutation operator
+     * is giving you a regex that lets anything pass.
+     *
+     * This mutation operator can suppress sanitization of inputs using
+     * Regex's and facilitate an attack.
+     *
+     */
+    add("PATTERN_MATCHES_ANYTHING_MUTATOR",
+        PatternMatchesAnythingMutator.PATTERN_MATCHES_ANYTHING_MUTATOR);
+
+
+
+
+    /**
+     * 20 From : http://askMike.hisIdea.gr Mutator that replaces any call to
+     * stringpattern.matches(goodRegex); by
+     * stringpattern.matches("([^¤]*)"); The regex ([^¤]*) says: accept a
+     * String containing anything but ¤, it can be as long as you want. If ¤
+     * is never used in inputs, the mutation operator is giving you a regex
+     * that lets anything pass.
+     *
+     * This mutation operator can suppress sanitization of inputs and
+     * facilitate an attack.
+     *
+     */
+    add("STRING_MATCHER_MATCHES_ANYTHING_MUTATOR",
+        StringMatcherMatchesAnythingMutator.STRING_MATCHER_MATCHES_ANYTHING_MUTATOR);
+
     addGroup("REMOVE_SWITCH", RemoveSwitchMutator.makeMutators());
     addGroup("DEFAULTS", defaults());
     addGroup("STRONGER", stronger());
+    addGroup("SECURITY", security());
     addGroup("ALL", all());
-    addGroup("NEW_DEFAULTS", newDefaults());
   }
 
   public static Collection<MethodMutatorFactory> all() {
@@ -207,6 +530,29 @@ public final class Mutator {
         NegateConditionalsMutator.NEGATE_CONDITIONALS_MUTATOR,
         ConditionalsBoundaryMutator.CONDITIONALS_BOUNDARY_MUTATOR,
         IncrementsMutator.INCREMENTS_MUTATOR);
+  }
+
+  public static Collection<MethodMutatorFactory> security() {
+    return group(
+        UseWeakPseudoRandomNumberGeneratorMutator.USE_WEAK_PSEUDO_RANDOM_NUMBER_GENERATOR_MUTATOR,
+        TrustUserInputInFilesRetrievementMutator.TRUST_USER_INPUT_IN_FILES_RETRIEVEMENT,
+        UseMD5ForEncryptionWithBouncyCastleMutator.USE_MD5_FOR_ENCRYPTION_WITH_BOUNCY_CASTLE,
+        UseMD5ForEncryptionJAVAStandardMutator.USE_MD5_FOR_ENCRYPTION_JAVA_STANDARD_MUTATOR,
+        HostNameVerifyToTrueMutator.HOST_NAME_VERIFY_TO_TRUE,
+        DisableDOCTYPEVerificationOnXMLParserWithXMLReaderMutator.XML_PARSER_VULNERABLE_TO_XXE_WITH_XMLREADER,
+        DisableDOSVerificationOnXMLParserWithSAXMutator.XML_PARSER_VULNERABLE_TO_DOS_WITH_SAX,
+        DisableDOSVerificationOnXMLParserWithXMLReaderMutator.XML_PARSER_VULNERABLE_TO_DOS_WITH_XMLREADER,
+        DisableDOCTYPEVerificationOnXMLParserWithSAXMutator.XML_PARSER_VULNERABLE_TO_XXE_WITH_SAX,
+        RemoveSSLInSocketMutator.REMOVE_SECURE_SOCKET_MUTATOR,
+        CookieSecureFlagDisableMutator.REMOVE_SECURE_FLAG_MUTATOR,
+        CookieHttpOnlyFlagDisableMutator.REMOVE_HTTPONLY_FLAG_MUTATOR,
+        RSAWithShortKeyMutator.RSA_WITH_SHORT_KEY_MUTATOR,
+        UseBLOWFISHWithShortKeyMutator.USE_BLOWFISH_WITH_SHORT_KEY,
+        SQLInjectionOKWithJDBCMutator.SQL_INJECTION_OK_WITH_JDBC,
+        // NEWUseDESForSymmetricEncryptionMutator.USE_DES_FOR_SYMMETRIC_ENCRYPTION,
+        UseECBInSymmetricEncryptionMutator.USE_ECB_IN_SYMMETRIC_ENCRYPTION,
+        PatternMatchesAnythingMutator.PATTERN_MATCHES_ANYTHING_MUTATOR,
+        StringMatcherMatchesAnythingMutator.STRING_MATCHER_MATCHES_ANYTHING_MUTATOR);
   }
 
   /**
